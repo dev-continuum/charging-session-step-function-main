@@ -1,0 +1,10 @@
+{
+"booking_id": "sdsd", 
+"wait_time": "10", 
+"station_id": "110", 
+"charger_point_id": 1,
+"connector_point_id": 1,
+"target_duration": 1,
+"target_energy": 0,
+"start_time": ""
+}

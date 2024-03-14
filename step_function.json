@@ -1,0 +1,97 @@
+{
+  "Comment": "An Polling based step function to monitor the ongoing charging session. A conclusive function to finalize the session.",
+  "StartAt": "Get First Charge Status",
+  "States": {
+    "Get First Charge Status": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:ap-south-1:683563489644:function:check_charging_status",
+      "Next": "Wait X Seconds",
+      "InputPath": "$.data_for_lambda",
+      "ResultPath": "$.status",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ]
+    },
+    "Wait X Seconds": {
+      "Type": "Wait",
+      "SecondsPath": "$.wait_time",
+      "Next": "Get Charge Status"
+    },
+    "Get Charge Status": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:ap-south-1:683563489644:function:check_charging_status",
+      "Next": "Charging Complete?",
+      "InputPath": "$.data_for_lambda",
+      "ResultPath": "$.status",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ]
+    },
+    "Charging Complete?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.status",
+          "StringEquals": "BOOKED",
+          "Next": "Wait X Seconds"
+        },
+        {
+          "Variable": "$.status",
+          "StringEquals": "STARTED  ",
+          "Next": "Wait X Seconds"
+        },
+        {
+          "Variable": "$.status",
+          "StringEquals": "IN_PROGRESS",
+          "Next": "Wait X Seconds"
+        },
+        {
+          "Variable": "$.status",
+          "StringEquals": "COMPLETED",
+          "Next": "Get Final Charge Status"
+        },
+        {
+          "Variable": "$.status",
+          "StringEquals": "REBOOKED",
+          "Next": "Cancel"
+        }
+      ],
+      "Default": "Get Final Charge Status"
+    },
+    "Get Final Charge Status": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:ap-south-1:683563489644:function:conclude_charging_session",
+      "InputPath": "$.data_for_lambda",
+      "End": true,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 1,
+          "BackoffRate": 2
+        }
+      ]
+    },
+    "Cancel": {
+      "Type": "Fail",
+      "Cause": "Booking is Cancelled",
+      "Error": "Booking is Cancelled due to rebooking"
+    }
+  }
+}
